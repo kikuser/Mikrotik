@@ -1,0 +1,18 @@
+Mikrotik как репитер WiFi
+
+Данный пример приведен для прошивки версии 6.42.7
+сброс настроек Mikrotik на заводские.
+Используем кнопку Tab для автозавершения команд и названий интерфейсов, чтобы избежать возможных ошибок!
+
+/interface wireless setup-repeater wlan1 ssid=My_WiFi_SSID passphrase=My_WiFi_Password
+
+My_WiFi_SSID - название WiFi сети, к которой мы подключаемся
+My_WiFi_Password - пароль WiFi сети, к которой мы подключаемся
+
+На основном маршрутизаторе выдаем статический ip-адрес (допустим 192.168.0.2) нашему маршрутизатор Mikrotik используя его MAC-адрес
+
+/ip address add address=192.168.0.2/24 interface=bridge1
+
+/ip dhcp-relay add dhcp-server=192.168.0.1 interface=bridge1 local-address=192.168.0.2
+
+/system reboot

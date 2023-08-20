@@ -1,0 +1,81 @@
+/interface list
+add name=Internet
+add name=VPN
+add name=Local
+/interface list member
+add interface=ether1 list=Internet
+/ip firewall address-list
+add address=192.168.3.0/24 list="Src Allow"
+/ip firewall filter
+add action=accept chain=forward dst-address-list="Dst Allow" src-address-list="Src Allow"
+add action=accept chain=input dst-address-list="Dst Allow" src-address-list="Src Allow"
+add action=accept chain=forward comment="1.1. Forward and Input Established and Related connections" connection-state=established,related
+add action=drop chain=forward connection-state=invalid
+add action=accept chain=input connection-state=established,related
+add action=drop chain=input connection-state=invalid
+add action=drop chain=forward connection-nat-state=!dstnat connection-state=new in-interface-list=Internet
+add action=add-src-to-address-list address-list=ddos-blacklist address-list-timeout=1d chain=input comment="1.2. DDoS Protect -Connection Limit" connection-limit=100,32 in-interface-list=Internet protocol=tcp
+add action=tarpit chain=input connection-limit=3,32 protocol=tcp src-address-list=ddos-blacklist
+add action=jump chain=forward comment="1.3. DDoS Protect - SYN Flood" connection-state=new jump-target=SYN-Protect protocol=tcp tcp-flags=syn
+add action=jump chain=input connection-state=new in-interface-list=Internet jump-target=SYN-Protect protocol=tcp tcp-flags=syn
+add action=return chain=SYN-Protect connection-state=new limit=200,5:packet protocol=tcp tcp-flags=syn
+add action=drop chain=SYN-Protect connection-state=new protocol=tcp tcp-flags=syn
+add action=drop chain=input comment="1.4. Protected - Ports Scanners" src-address-list="Port Scanners"
+add action=add-src-to-address-list address-list="Port Scanners" address-list-timeout=none-dynamic chain=input in-interface-list=Internet protocol=tcp psd=21,3s,3,1
+add action=drop chain=input comment="1.5. Protected - WinBox Access" src-address-list="Black List Winbox"
+add action=drop chain=input disabled=yes dst-port=8291,22 in-interface-list=Internet protocol=tcp
+add action=add-src-to-address-list address-list="Black List Winbox" address-list-timeout=none-dynamic chain=input connection-state=new dst-port=8291,22 log=yes log-prefix="BLACK WINBOX" protocol=tcp \
+    src-address-list="Winbox Stage 3"
+add action=add-src-to-address-list address-list="Winbox Stage 3" address-list-timeout=1m chain=input connection-state=new dst-port=8291,22 protocol=tcp src-address-list="Winbox Stage 2"
+add action=add-src-to-address-list address-list="Winbox Stage 2" address-list-timeout=1m chain=input connection-state=new dst-port=8291,22 protocol=tcp src-address-list="Winbox Stage 1"
+add action=add-src-to-address-list address-list="Winbox Stage 1" address-list-timeout=1m chain=input connection-state=new dst-port=8291,22 protocol=tcp
+add action=accept chain=input dst-port=8291,22 protocol=tcp
+add action=accept chain=input comment="1.7. Access OpenVPN Tunnel Data" in-interface-list=VPN
+add action=accept chain=input comment="1.8. Access Normal Ping" in-interface-list=Internet limit=50/5s,2:packet protocol=icmp
+add action=accept chain=forward limit=50/5s,2:packet protocol=icmp
+add action=log chain=input comment="1.9. Drop All Other" in-interface-list=Internet log-prefix=drop
+add action=drop chain=input in-interface-list=Internet
+.
+
+/ip firewall layer7-protocol
+add comment="Block Bit Torrent" name=layer7-bittorrent-exp regexp="^(\\x13bitt\
+    orrent protocol|azver\\x01\$|get /scrape\\\?info_hash=get /announce\\\?inf\
+    o_hash=|get /client/bitcomet/|GET /data\\\?fid=)|d1:ad2:id20:|\\x08'7P\\)[\
+    RP]"
+
+/ip firewall filter
+add action=add-src-to-address-list address-list=Torrent-Conn \
+    address-list-timeout=2m chain=forward layer7-protocol=\
+    layer7-bittorrent-exp src-address=192.168.10.0/24 src-address-list=\
+    !allow
+add action=drop chain=forward dst-port=\
+    !0-1024,8291,5900,5800,3389,14147,5222,59905 protocol=tcp \
+    src-address-list=Torrent-Conn
+add action=drop chain=forward dst-port=\
+    !0-1024,8291,5900,5800,3389,14147,5222,59905 protocol=udp \
+    src-address-list=Torrent-Conn 
+
+
+
+
+
+/interface list
+add name=Internet
+add name=VPN
+add name=Local
+/ip firewall filter
+add action=add-src-to-address-list address-list=ddos-blacklist address-list-timeout=1d chain=input comment="1.2. DDoS Protect -Connection Limit" connection-limit=100,32 in-interface-list=Internet protocol=tcp
+add action=tarpit chain=input connection-limit=3,32 protocol=tcp src-address-list=ddos-blacklist
+add action=jump chain=forward comment="1.3. DDoS Protect - SYN Flood" connection-state=new jump-target=SYN-Protect protocol=tcp tcp-flags=syn
+add action=jump chain=input connection-state=new in-interface-list=Internet jump-target=SYN-Protect protocol=tcp tcp-flags=syn
+add action=return chain=SYN-Protect connection-state=new limit=200,5:packet protocol=tcp tcp-flags=syn
+add action=drop chain=SYN-Protect connection-state=new protocol=tcp tcp-flags=syn
+add action=drop chain=input comment="1.5. Protected - WinBox Access" src-address-list="Black List Winbox"
+add action=drop chain=input disabled=yes dst-port=8291,22 in-interface-list=Internet protocol=tcp
+add action=add-src-to-address-list address-list="Black List Winbox" address-list-timeout=none-dynamic chain=input connection-state=new dst-port=8291,22 log=yes log-prefix="BLACK WINBOX" protocol=tcp \
+    src-address-list="Winbox Stage 3"
+add action=add-src-to-address-list address-list="Winbox Stage 3" address-list-timeout=1m chain=input connection-state=new dst-port=8291,22 protocol=tcp src-address-list="Winbox Stage 2"
+add action=add-src-to-address-list address-list="Winbox Stage 2" address-list-timeout=1m chain=input connection-state=new dst-port=8291,22 protocol=tcp src-address-list="Winbox Stage 1"
+add action=add-src-to-address-list address-list="Winbox Stage 1" address-list-timeout=1m chain=input connection-state=new dst-port=8291,22 protocol=tcp
+add action=accept chain=input dst-port=8291,22 protocol=tcp
+

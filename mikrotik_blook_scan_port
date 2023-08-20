@@ -1,0 +1,34 @@
+/ip firewall filter
+add action=drop chain=input comment="1.4. Protected - Ports Scanners" \
+    src-address-list="Port Scanners"
+add action=add-src-to-address-list address-list="Port Scanners" \
+    address-list-timeout=none-dynamic chain=input protocol=tcp psd=21,3s,3,1
+add action=add-src-to-address-list address-list="Port Scanners" \
+    address-list-timeout=none-dynamic chain=forward protocol=tcp psd=\
+    22,4s,3,1 src-address-list="!Full Access"
+add action=drop chain=input comment="Drop - port scanners" src-address-list=\
+    Port-Scanners
+add action=drop chain=forward comment="Drop - port scanners" \
+    src-address-list=Port-Scanners
+add action=add-src-to-address-list address-list=Port-Scanners \
+    address-list-timeout=2w chain=input comment="Scan - Scan Ports" protocol=\
+    tcp psd=21,3s,3,1
+add action=add-src-to-address-list address-list=Port-Scanners \
+    address-list-timeout=2w chain=input comment=\
+    "Scan - NMAP FIN Stealth scan" protocol=tcp tcp-flags=\
+    fin,!syn,!rst,!psh,!ack,!urg
+add action=add-src-to-address-list address-list=Port-Scanners \
+    address-list-timeout=2w chain=input comment="Scan - SYN/FIN scan" \
+    protocol=tcp tcp-flags=fin,syn
+add action=add-src-to-address-list address-list=Port-Scanners \
+    address-list-timeout=2w chain=input comment="Scan - SYN/RST scan" \
+    protocol=tcp tcp-flags=syn,rst
+add action=add-src-to-address-list address-list=Port-Scanners \
+    address-list-timeout=2w chain=input comment="Scan - FIN/PSH/URG scan" \
+    protocol=tcp tcp-flags=fin,psh,urg,!syn,!rst,!ack
+add action=add-src-to-address-list address-list=Port-Scanners \
+    address-list-timeout=2w chain=input comment="Scan - ALL/ALL scan" \
+    protocol=tcp tcp-flags=fin,syn,rst,psh,ack,urg
+add action=add-src-to-address-list address-list=Port-Scanners \
+    address-list-timeout=2w chain=input comment="Scan - NMAP NULL scan" \
+    protocol=tcp tcp-flags=!fin,!syn,!rst,!psh,!ack,!urg

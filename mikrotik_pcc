@@ -1,0 +1,26 @@
+/ip firewall mangle
+add action=mark-connection chain=prerouting connection-state=new in-interface=ether1 new-connection-mark=wan1 passthrough=yes
+add action=mark-connection chain=prerouting connection-state=new in-interface=ether new-connection-mark=wan2 passthrough=yes
+add action=mark-routing chain=output connection-mark=wan1 new-routing-mark=wan1-out passthrough=yes
+add action=mark-routing chain=output connection-mark=wan2 new-routing-mark=wan2-out passthrough=yes
+
+add action=mark-connection chain=prerouting connection-state=new dst-address-type=!local in-interface=bridge new-connection-mark=wan1 passthrough=yes per-connection-classifier=both-addresses:2/0
+
+add action=mark-connection chain=prerouting connection-state=new dst-address-type=!local in-interface=bridge new-connection-mark=wan2 passthrough=yes per-connection-classifier=both-addresses:2/1
+
+add action=mark-routing chain=prerouting connection-mark=wan1 in-interface=bridge new-routing-mark=wan1output passthrough=yes
+add action=mark-routing chain=prerouting connection-mark=wan2 in-interface=bridge new-routing-mark=wan2output passthrough=yes
+
+/ip firewall nat
+add action=masquerade chain=srcnat out-interface=ether1
+add action=masquerade chain=srcnat out-interface=ether2
+
+/ip route
+add check-gateway=ping distance=1 gateway=92.50.138.233 routing-mark=wan1output
+add check-gateway=ping distance=2 gateway=77.94.125.161 routing-mark=wan2output
+add check-gateway=ping distance=1 gateway=92.50.138.233
+add check-gateway=ping distance=2 gateway=77.94.125.161
+
+https://winflare.com/2017/09/25/setup-load-balancing-using-pcc-mikrotik/
+
+Настройка «both addresses and ports» может не всегда верно работать с банк-клиентами и некоторыми форумами, т.к. реализует наиболее случайное распределение. В этом случае лучше использовать «src-address» - тогда каждый компьютер будет получать на время работы один и тот же маршрут 
