@@ -1,0 +1,7 @@
+DNS.Google (8.8.8.8)
+
+/tool fetch url=https://curl.se/ca/cacert.pem
+/certificate import file-name=cacert.pem passphrase=""
+/ip dns static add address=8.8.8.8 name=dns.google
+/ip dns static add address=8.8.4.4 name=dns.google
+/ip dns set use-doh-server=https://dns.google/dns-query verify-doh-cert=yes
